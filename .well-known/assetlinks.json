@@ -1,1 +1,8 @@
-
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "io.github.ghost607080.twa",
+        "sha256_cert_fingerprints": ["55:66:0D:E5:75:03:6E:D3:96:3A:C3:FB:5E:36:11:31:A6:0A:24:11:BF:32:62:D7:EA:3A:3D:8B:49:7C:1E:96"]
+      }
+    }]
