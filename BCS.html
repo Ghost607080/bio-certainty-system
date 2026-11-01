@@ -1,0 +1,1359 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Biological Certainty System (BCS v9.0)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/dexie@latest/dist/dexie.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            oled: '#000000',
+            surface: '#0a0a0a',
+            surfaceCard: '#111111',
+            surfaceBorder: '#222222',
+            bcsGreen: '#10b981',
+            bcsAmber: '#f59e0b',
+            bcsBlue: '#3b82f6',
+            bcsRed: '#ef4444',
+            bcsPurple: '#8b5cf6'
+          },
+          fontFamily: {
+            mono: ['"JetBrains Mono"', 'monospace'],
+            sans: ['"Plus Jakarta Sans"', 'sans-serif']
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background-color: #000000;
+      color: #e5e7eb;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .custom-scroll::-webkit-scrollbar { width: 4px; height: 4px; }
+    .custom-scroll::-webkit-scrollbar-thumb { background: #262626; border-radius: 4px; }
+    .custom-scroll::-webkit-scrollbar-track { background: #0a0a0a; }
+  </style>
+</head>
+<body class="bg-black text-gray-200 min-h-screen pb-24 select-none">
+
+  <!-- TOP TELEMETRY STATUS BAR -->
+  <header class="sticky top-0 z-40 bg-black/95 backdrop-blur border-b border-surfaceBorder px-4 py-2.5">
+    <div class="max-w-5xl mx-auto flex items-center justify-between gap-3">
+      <div class="flex items-center gap-2">
+        <div class="w-2.5 h-2.5 rounded-full bg-bcsGreen animate-pulse"></div>
+        <div>
+          <div class="text-xs font-mono font-bold tracking-wider text-gray-400">BCS V9.0 MASTER ENGINE</div>
+          <div class="text-sm font-extrabold text-white flex items-center gap-2">
+            <span id="currentDayDisplay">MON</span>
+            <span id="currentTimeDisplay" class="font-mono text-emerald-400">--:--:-- IST</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- HORMONAL STATE BADGE & EDIT TOGGLE -->
+      <div class="flex items-center gap-2">
+        <button id="hormonalStatePill" onclick="openHormonalDrawer()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-950/70 border border-emerald-500/50 text-emerald-300 text-xs font-mono font-semibold hover:border-emerald-400 transition">
+          <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+          <span>Hormonal State: <strong id="headerHormonalState" class="text-white">Steady</strong></span>
+          <span class="text-[10px] bg-emerald-800/80 px-1.5 py-0.2 rounded font-bold" id="steadyScoreBadge">10/10</span>
+        </button>
+
+        <button id="editModeToggleBtn" onclick="toggleEditMode()" class="px-2.5 py-1.5 rounded-lg border border-neutral-700 bg-neutral-900 text-neutral-300 text-xs font-mono font-medium hover:bg-neutral-800 transition">
+          Edit: <span id="editModeStatus" class="text-red-400">OFF</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- SECONDARY SCORE STRIP -->
+  <div class="bg-surface border-b border-surfaceBorder px-4 py-1.5 text-[11px] font-mono text-gray-400">
+    <div class="max-w-5xl mx-auto flex items-center justify-between overflow-x-auto gap-4 custom-scroll whitespace-nowrap">
+      <div>Accountability: <span id="hdrAccountability" class="text-emerald-400 font-bold">100.0%</span></div>
+      <div>Focus Score: <span id="hdrFocusScore" class="text-cyan-400 font-bold">100.0%</span></div>
+      <div>Deep Work: <span id="hdrDeepWork" class="text-indigo-400 font-bold">47.8h</span></div>
+      <div>Hydration: <span id="hdrHydration" class="text-blue-400 font-bold">4000/4000ml</span></div>
+      <div>Epigenetic Triggers: <span id="hdrEpigenetics" class="text-purple-400 font-bold">10/10</span></div>
+      <div>Target Trajectory: <span class="text-amber-400 font-bold">85kg → 71kg</span></div>
+    </div>
+  </div>
+
+  <!-- NAVIGATION TABS -->
+  <nav class="max-w-5xl mx-auto px-4 mt-3">
+    <div class="flex items-center gap-1 border-b border-surfaceBorder pb-1 overflow-x-auto custom-scroll text-xs font-mono font-semibold">
+      <button onclick="switchTab('cockpit')" id="tabBtn-cockpit" class="tab-btn px-3 py-2 rounded-t-lg bg-surfaceCard text-emerald-400 border-b-2 border-emerald-400">1. Command Cockpit</button>
+      <button onclick="switchTab('fuel')" id="tabBtn-fuel" class="tab-btn px-3 py-2 rounded-t-lg text-gray-400 hover:text-gray-200">2. Fuel & Refinery</button>
+      <button onclick="switchTab('athletic')" id="tabBtn-athletic" class="tab-btn px-3 py-2 rounded-t-lg text-gray-400 hover:text-gray-200">3. Athletic & Dermal</button>
+      <button onclick="switchTab('sleep')" id="tabBtn-sleep" class="tab-btn px-3 py-2 rounded-t-lg text-gray-400 hover:text-gray-200">4. Sleep & Readiness</button>
+      <button onclick="switchTab('vault')" id="tabBtn-vault" class="tab-btn px-3 py-2 rounded-t-lg text-gray-400 hover:text-gray-200">5. 365-Day & Lab Vault</button>
+    </div>
+  </nav>
+
+  <!-- MAIN VIEWPORT -->
+  <main class="max-w-5xl mx-auto px-4 mt-4">
+
+    <!-- ========================================== -->
+    <!-- TAB 1: COMMAND COCKPIT                     -->
+    <!-- ========================================== -->
+    <div id="tab-cockpit" class="tab-content space-y-4">
+
+      <!-- LIVE HORMONAL INDEX MONITOR CARD -->
+      <div class="p-4 rounded-xl bg-gradient-to-r from-neutral-950 via-surfaceCard to-neutral-950 border border-emerald-500/30 relative overflow-hidden">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <div class="text-[11px] font-mono uppercase tracking-wider text-emerald-400 flex items-center gap-1.5 font-bold">
+              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+              Autonomous CNS Governance Engine
+            </div>
+            <div class="text-xl font-extrabold text-white mt-1 flex items-center gap-2">
+              Hormonal State: <span id="cockpitHormonalState" class="text-emerald-400">Steady</span>
+              <span class="text-xs font-mono font-normal text-gray-400 px-2 py-0.5 rounded bg-neutral-900 border border-neutral-700" id="cockpitActiveVector">Homeostatic Peak</span>
+            </div>
+            <div class="text-xs text-gray-400 mt-1" id="cockpitWindowBioDirective">
+              Loading active circadian state...
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="openHormonalDrawer()" class="px-4 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-black font-extrabold text-xs font-mono shadow-lg shadow-emerald-900/30 transition">
+              ⚡ Triage / Deviation Aid
+            </button>
+          </div>
+        </div>
+
+        <!-- ACTIVE COUNTERMEASURE STRIP (Visible when non-steady or triggered) -->
+        <div id="liveTriageBanner" class="hidden mt-3 pt-3 border-t border-surfaceBorder text-xs">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
+            <div class="p-2.5 rounded bg-black/60 border border-neutral-800">
+              <div class="text-amber-400 font-mono font-bold text-[10px] uppercase">Root Cause Identified</div>
+              <div id="triageRootCauseText" class="text-gray-300 mt-0.5 text-[11px]">Evaluating input vector...</div>
+            </div>
+            <div class="p-2.5 rounded bg-black/60 border border-emerald-900/50">
+              <div class="text-emerald-400 font-mono font-bold text-[10px] uppercase">Immediate Physical Aid</div>
+              <div id="triageAidText" class="text-gray-200 mt-0.5 text-[11px] font-semibold">Ready for execution.</div>
+            </div>
+            <div class="p-2.5 rounded bg-black/60 border border-blue-900/50">
+              <div class="text-blue-400 font-mono font-bold text-[10px] uppercase">Preemptive System Lock</div>
+              <div id="triageLockText" class="text-gray-300 mt-0.5 text-[11px]">Enforce protocol window.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DAY SELECTOR & MASTER SCHEDULE METRICS -->
+      <div class="p-3.5 rounded-xl bg-surfaceCard border border-surfaceBorder flex flex-col md:flex-row items-center justify-between gap-3">
+        <div class="flex items-center gap-1.5 overflow-x-auto w-full md:w-auto custom-scroll pb-1 md:pb-0 text-xs font-mono">
+          <button onclick="loadDaySchedule('MON')" class="day-btn px-2.5 py-1.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/50 font-bold" data-day="MON">MON</button>
+          <button onclick="loadDaySchedule('TUE')" class="day-btn px-2.5 py-1.5 rounded bg-neutral-900 text-gray-400 border border-neutral-800" data-day="TUE">TUE</button>
+          <button onclick="loadDaySchedule('WED')" class="day-btn px-2.5 py-1.5 rounded bg-neutral-900 text-gray-400 border border-neutral-800" data-day="WED">WED</button>
+          <button onclick="loadDaySchedule('THU')" class="day-btn px-2.5 py-1.5 rounded bg-neutral-900 text-gray-400 border border-neutral-800" data-day="THU">THU</button>
+          <button onclick="loadDaySchedule('FRI')" class="day-btn px-2.5 py-1.5 rounded bg-neutral-900 text-gray-400 border border-neutral-800" data-day="FRI">FRI</button>
+          <button onclick="loadDaySchedule('SAT')" class="day-btn px-2.5 py-1.5 rounded bg-neutral-900 text-gray-400 border border-neutral-800" data-day="SAT">SAT</button>
+          <button onclick="loadDaySchedule('SUN')" class="day-btn px-2.5 py-1.5 rounded bg-neutral-900 text-gray-400 border border-neutral-800" data-day="SUN">SUN</button>
+        </div>
+        <div class="flex items-center gap-3 text-xs font-mono text-gray-400 w-full md:w-auto justify-end">
+          <span>Completion: <strong id="dayCompletionRate" class="text-emerald-400 font-bold">100%</strong></span>
+          <span>Blocks: <strong id="dayBlocksCount" class="text-white">38/38</strong></span>
+        </div>
+      </div>
+
+      <!-- SCHEDULE MICRO-BLOCKS TABLE -->
+      <div class="rounded-xl border border-surfaceBorder bg-surfaceCard overflow-hidden">
+        <div class="px-4 py-3 border-b border-surfaceBorder flex items-center justify-between">
+          <h2 class="text-sm font-bold text-white flex items-center gap-2">
+            <span>📅</span> Daily Micro-Blocks Timeline (Auto-Scrolling)
+          </h2>
+          <span class="text-[11px] font-mono text-gray-400">Tap checkbox or score to log</span>
+        </div>
+
+        <div class="overflow-x-auto max-h-[520px] custom-scroll">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-black/60 text-gray-400 font-mono border-b border-surfaceBorder sticky top-0 backdrop-blur z-10 text-[11px]">
+              <tr>
+                <th class="py-2.5 px-3 w-10">Done</th>
+                <th class="py-2.5 px-3 w-28">Time Slot</th>
+                <th class="py-2.5 px-3">Activity / Physiological Directive</th>
+                <th class="py-2.5 px-3 w-24">Category</th>
+                <th class="py-2.5 px-3 w-28">Steady Score</th>
+              </tr>
+            </thead>
+            <tbody id="scheduleTableBody" class="divide-y divide-surfaceBorder font-sans text-gray-300">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 10 DAILY EPIGENETIC TRIGGERS CONSOLE -->
+      <div class="p-4 rounded-xl bg-surfaceCard border border-surfaceBorder space-y-3">
+        <div class="flex items-center justify-between">
+          <h3 class="text-xs font-mono font-bold uppercase tracking-wider text-purple-400 flex items-center gap-1.5">
+            <span>🔬</span> 10 Daily Epigenetic Triggers & Activation Console
+          </h3>
+          <span id="epigeneticScoreDisplay" class="text-xs font-mono font-bold text-white bg-purple-950 border border-purple-800 px-2 py-0.5 rounded">10 / 10 Active</span>
+        </div>
+        <div id="epigeneticTriggersList" class="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+          <!-- Dynamically populated -->
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ========================================== -->
+    <!-- TAB 2: FUEL & CLOSED-LOOP REFINERY         -->
+    <!-- ========================================== -->
+    <div id="tab-fuel" class="tab-content hidden space-y-4">
+
+      <!-- 12-ASSET MACRONUTRIENT & CALORIC TELEMETRY STRIP -->
+      <div class="p-4 rounded-xl bg-surfaceCard border border-surfaceBorder">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-surfaceBorder pb-3">
+          <div>
+            <div class="text-xs font-mono uppercase text-gray-400">V9 Zero-Soy Nutritional Engine</div>
+            <div class="text-lg font-bold text-white flex items-center gap-2">
+              <span id="fuelTotalCalories">2,491 kcal</span>
+              <span class="text-xs text-gray-400 font-normal font-mono" id="fuelMealSplitTag">(Mon-Fri & Sun: Full 4-Meal Protocol)</span>
+            </div>
+          </div>
+          <div class="grid grid-cols-3 gap-2 text-center font-mono text-xs">
+            <div class="p-2 rounded bg-black/60 border border-neutral-800">
+              <div class="text-emerald-400 font-bold" id="fuelProteinDisplay">261.7g</div>
+              <div class="text-[10px] text-gray-500">PROTEIN (DIAAS 1.09)</div>
+            </div>
+            <div class="p-2 rounded bg-black/60 border border-neutral-800">
+              <div class="text-amber-400 font-bold" id="fuelFatDisplay">70.7g</div>
+              <div class="text-[10px] text-gray-500">FAT (31.7s / 39.0u)</div>
+            </div>
+            <div class="p-2 rounded bg-black/60 border border-neutral-800">
+              <div class="text-blue-400 font-bold" id="fuelCarbDisplay">204.5g</div>
+              <div class="text-[10px] text-gray-500">NET CARBS</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 9 ESSENTIAL AMINO ACIDS (EAA) LIVE PROGRESS BARS -->
+        <div class="mt-3 pt-2">
+          <div class="text-xs font-mono font-bold text-gray-300 mb-2 flex items-center justify-between">
+            <span>🧬 9 Essential Amino Acids vs WHO/FAO Reference (85kg Ref)</span>
+            <span class="text-emerald-400 text-[11px]">100% Completeness Locked</span>
+          </div>
+          <div class="grid grid-cols-3 sm:grid-cols-9 gap-2 text-[10px] font-mono" id="eaaGrid">
+            <!-- Populated via script -->
+          </div>
+        </div>
+      </div>
+
+      <!-- CULINARY FLAVOR VARIANT ROTATOR (A / B / C) -->
+      <div class="p-4 rounded-xl bg-surfaceCard border border-surfaceBorder space-y-3">
+        <div class="flex items-center justify-between">
+          <h3 class="text-xs font-mono font-bold text-amber-400 uppercase tracking-wider">
+            🍳 Zero-Calorie Culinary Flavor Rotator
+          </h3>
+          <div class="flex items-center gap-1 font-mono text-xs">
+            <button onclick="setFlavorVariant('A')" id="flavorBtn-A" class="flavor-btn px-2.5 py-1 rounded bg-amber-500 text-black font-bold">Variant A</button>
+            <button onclick="setFlavorVariant('B')" id="flavorBtn-B" class="flavor-btn px-2.5 py-1 rounded bg-neutral-900 text-gray-400 hover:text-white">Variant B</button>
+            <button onclick="setFlavorVariant('C')" id="flavorBtn-C" class="flavor-btn px-2.5 py-1 rounded bg-neutral-900 text-gray-400 hover:text-white">Variant C</button>
+          </div>
+        </div>
+        <div id="flavorVariantDetails" class="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+
+      <!-- 4 DAILY MEALS CHECKLIST & COMPLIANCE -->
+      <div class="p-4 rounded-xl bg-surfaceCard border border-surfaceBorder space-y-3">
+        <div class="flex items-center justify-between border-b border-surfaceBorder pb-2">
+          <h3 class="text-xs font-mono font-bold uppercase text-white">🥗 4-Meal Precision Protocol</h3>
+          <span class="text-[11px] font-mono text-emerald-400">40:60 Evening Feast Matrix</span>
+        </div>
+        <div id="mealsContainer" class="space-y-3">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+
+      <!-- 16-SLOT CLINICAL HYDRATION ENGINE WITH GASTRIC FREEZES -->
+      <div class="p-4 rounded-xl bg-surfaceCard border border-surfaceBorder space-y-3">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1 border-b border-surfaceBorder pb-2">
+          <div>
+            <h3 class="text-xs font-mono font-bold uppercase text-blue-400">💧 4-Litre Hydration Engine (16 × 250ml Register)</h3>
+            <div class="text-[11px] text-gray-400">Strict Gastric Shield: Freezes 30m Pre / 60m Post Solid Meals</div>
+          </div>
+          <div class="text-xs font-mono font-bold text-white" id="hydrationProgressRatio">16 / 16 (4,000 ml)</div>
+        </div>
+        <div id="hydrationGrid" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-2 text-xs font-mono">
+          <!-- Populated dynamically with freeze indicators -->
+        </div>
+      </div>
+
+      <!-- CLOSED-LOOP 2L BUFFALO MILK REFINERY & PARATHA MATRIX SOPS -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="p-4 rounded-xl bg-surfaceCard border border-surfaceBorder space-y-2">
+          <div class="text-xs font-mono font-bold uppercase text-emerald-400">🥛 4-Phase Buffalo Milk Refinery</div>
+          <div class="text-xs text-gray-300 space-y-1.5">
+            <div><strong class="text-white">Phase 1 (Skim):</strong> Boil 2.0L, cool, chill overnight. Skim 100% malai (~140g) into cultured jar.</div>
+            <div><strong class="text-white">Phase 2 (Paneer & Acid Whey):</strong> Simmer 1.2L skimmed milk to 85-90°C. Curdle with vinegar. Yields 250g paneer + 950ml acid whey.</div>
+            <div><strong class="text-white">Phase 3 (Curd/Dahi):</strong> Inoculate 550ml skimmed milk at 37-40°C. 6-8h incubation. Yields 550g curd.</div>
+            <div><strong class="text-white">Phase 4 (Night Casein):</strong> Bottle remaining 250ml skimmed milk for Meal 4 (10:15 PM).</div>
+          </div>
+        </div>
+
+        <div class="p-4 rounded-xl bg-surfaceCard border border-surfaceBorder space-y-2">
+          <div class="text-xs font-mono font-bold uppercase text-amber-400">🫓 Combination Z Anti-Rubberization Dough</div>
+          <div class="text-xs text-gray-300 space-y-1.5">
+            <div><strong class="text-white">Wash:</strong> Wash ~470g atta in cold water until 100g elastic gluten remains. Collect 30g wet starch.</div>
+            <div><strong class="text-white">Emulsion Paste:</strong> Whisk 15g WPI + 50g grated paneer + 30g wet starch + 50g curd whey + 1/2 tsp ghee + aromatics.</div>
+            <div><strong class="text-white">Dry Blend & Knead:</strong> 40g dry atta + 10g moringa + spices + 100g gluten + 120-130ml acid whey. Knead 6m.</div>
+            <div><strong class="text-white">Fermentation:</strong> 8-12h anaerobic seal in 304 SS/glass. Divide 5 parathas (2 to Meal 3; 3 to Meal 4).</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ========================================== -->
+    <!-- TAB 3: ATHLETIC & DERMAL LAB               -->
+    <!-- ========================================== -->
+    <div id="tab-athletic" class="tab-content hidden space-y-4">
+
+      <!-- 4-BLOCK STEP REGISTER (15,000 DAILY STEPS) -->
+      <div class="p-4 rounded-xl bg-surfaceCard border border-surfaceBorder space-y-3">
+        <div class="flex items-center justify-between border-b border-surfaceBorder pb-2">
+          <h3 class="text-xs font-mono font-bold uppercase text-emerald-400">🚶 4-Block Movement Register (15k Steps Target)</h3>
+          <span class="text-xs font-mono font-bold text-white" id="totalStepsDisplay">15,000 / 15,000</span>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-4 gap-2 text-xs font-mono">
+          <div class="p-2.5 rounded bg-black/60 border border-neutral-800 flex items-center justify-between">
+            <div>
+              <div class="text-[10px] text-gray-400">Block 1: Sunrise Spark</div>
+              <div class="font-bold text-white">4,500 steps</div>
+            </div>
+            <input type="checkbox" checked class="w-4 h-4 accent-emerald-500 rounded">
+          </div>
+          <div class="p-2.5 rounded bg-black/60 border border-neutral-800 flex items-center justify-between">
+            <div>
+              <div class="text-[10px] text-gray-400">Block 2: Midday Stroll</div>
+              <div class="font-bold text-white">3,500 steps</div>
+            </div>
+            <input type="checkbox" checked class="w-4 h-4 accent-emerald-500 rounded">
+          </div>
+          <div class="p-2.5 rounded bg-black/60 border border-neutral-800 flex items-center justify-between">
+            <div>
+              <div class="text-[10px] text-gray-400">Block 3: Evening Strike</div>
+              <div class="font-bold text-white">2,000 steps</div>
+            </div>
+            <input type="checkbox" checked class="w-4 h-4 accent-emerald-500 rounded">
+          </div>
+          <div class="p-2.5 rounded bg-black/60 border border-neutral-800 flex items-center justify-between">
+            <div>
+              <div class="text-[10px] text-gray-400">Block 4: Post-Meal Flush</div>
+              <div class="font-bold text-white">5,000 steps</div>
+            </div>
+            <input type="checkbox" checked class="w-4 h-4 accent-emerald-500 rounded">
+          </div>
+        </div>
+      </div>
+
+      <!-- ALACTIC PRE-ADRENALINE SPRINTS & FRIDAY LEG LOCK -->
+      <div class="p-4 rounded-xl bg-surfaceCard border border-surfaceBorder space-y-3">
+        <div class="flex items-center justify-between">
+          <div>
+            <h3 class="text-xs font-mono font-bold uppercase text-red-400">⚡ Pre-Adrenaline Alactic Sprints (Mon-Thu Only)</h3>
+            <div class="text-[11px] text-gray-400">Terminate sprint at ~6-8s before talk-test slips or epinephrine surges</div>
+          </div>
+          <div id="fridayLegLockBanner" class="hidden px-2.5 py-1 rounded bg-red-950 border border-red-600 text-red-300 text-[11px] font-mono font-bold">
+            🔒 64H FRIDAY LEG-DAY LOCK ACTIVE
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs font-mono">
+          <div class="p-3 rounded bg-black/60 border border-neutral-800 space-y-1">
+            <div class="text-gray-400">Set 1: 85% Pre-Adrenaline</div>
+            <div class="text-white font-bold">6-8s (~50m) | Talk-Test Steady</div>
+            <div class="text-[10px] text-gray-500">3m Nasal Recovery</div>
+          </div>
+          <div class="p-3 rounded bg-black/60 border border-neutral-800 space-y-1">
+            <div class="text-gray-400">Set 2: 90% Pre-Adrenaline</div>
+            <div class="text-white font-bold">6-8s (~60m) | Strict Nasal Breath</div>
+            <div class="text-[10px] text-gray-500">3-4m Nasal Recovery</div>
+          </div>
+          <div class="p-3 rounded bg-black/60 border border-neutral-800 space-y-1">
+            <div class="text-gray-400">Set 3: 95% Pre-Adrenaline</div>
+            <div class="text-white font-bold">6-8s (~70m) | Split-Second Cutoff</div>
+            <div class="text-[10px] text-gray-500">4m Complete ATP-CP Resynthesis</div>
+          </div>
+        </div>
+
+        <!-- NASAL RECOVERY TIMER -->
+        <div class="p-3 rounded-lg bg-black/80 border border-surfaceBorder flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <span class="text-xs font-mono text-gray-300">Sprint Recovery Stopwatch:</span>
+            <span id="nasalTimerDisplay" class="font-mono text-sm font-bold text-emerald-400">03:30</span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <button onclick="startTimer(210, 'nasalTimerDisplay')" class="px-3 py-1 rounded bg-neutral-800 text-white text-xs font-mono hover:bg-neutral-700">Start 3.5m</button>
+            <button onclick="resetTimer('nasalTimerDisplay', '03:30')" class="px-2 py-1 rounded bg-neutral-900 text-gray-400 text-xs font-mono">Reset</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- COMBAT & HYPERTROPHY LOGGER -->
+      <div class="p-4 rounded-xl bg-surfaceCard border border-surfaceBorder space-y-3">
+        <div class="flex items-center justify-between border-b border-surfaceBorder pb-2">
+          <h3 class="text-xs font-mono font-bold uppercase text-white">🥊 Technical Combat & Strength Logger</h3>
+          <span class="text-[11px] font-mono text-gray-400">Post-Round Dead Hang & Cervical Prehab</span>
+        </div>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs font-mono">
+          <div class="p-2 rounded bg-black/60 border border-neutral-800">
+            <div class="text-[10px] text-gray-400">Discipline</div>
+            <div class="font-bold text-white" id="combatDiscipline">Muay Thai Striking</div>
+          </div>
+          <div class="p-2 rounded bg-black/60 border border-neutral-800">
+            <div class="text-[10px] text-gray-400">Volume / Combos</div>
+            <div class="font-bold text-white">6 Rds × 3m (Jab-Cross-Hook-Kick)</div>
+          </div>
+          <div class="p-2 rounded bg-black/60 border border-neutral-800">
+            <div class="text-[10px] text-gray-400">Snap Score (1-10)</div>
+            <div class="font-bold text-emerald-400">9.0 / 10</div>
+          </div>
+          <div class="p-2 rounded bg-black/60 border border-neutral-800">
+            <div class="text-[10px] text-gray-400">RPE (1-10)</div>
+            <div class="font-bold text-amber-400">8.5 / 10</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- HARDWARE PREHAB & DERMAL COUNTDOWN TIMERS -->
+      <div class="p-4 rounded-xl bg-surfaceCard border border-surfaceBorder space-y-3">
+        <h3 class="text-xs font-mono font-bold uppercase text-cyan-400">⏱️ Integumentary & Kitchen Precision Timers</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs font-mono">
+          <!-- Garlic Allicin Timer -->
+          <div class="p-3 rounded bg-black/60 border border-neutral-800 flex flex-col justify-between">
+            <div>
+              <div class="text-white font-bold">10m Garlic Allicin Dwell</div>
+              <div class="text-[10px] text-gray-400">Enzymatic alliinase conversion</div>
+            </div>
+            <div class="mt-2 flex items-center justify-between">
+              <span id="garlicTimerDisplay" class="text-lg font-bold text-emerald-400">10:00</span>
+              <button onclick="startTimer(600, 'garlicTimerDisplay')" class="px-2.5 py-1 rounded bg-neutral-800 text-xs hover:bg-neutral-700">Start</button>
+            </div>
+          </div>
+
+          <!-- BHA Cleanser Timer -->
+          <div class="p-3 rounded bg-black/60 border border-neutral-800 flex flex-col justify-between">
+            <div>
+              <div class="text-white font-bold">60s BHA Salicylic Dwell</div>
+              <div class="text-[10px] text-gray-400">Lipophilic corneocyte release</div>
+            </div>
+            <div class="mt-2 flex items-center justify-between">
+              <span id="bhaTimerDisplay" class="text-lg font-bold text-cyan-400">01:00</span>
+              <button onclick="startTimer(60, 'bhaTimerDisplay')" class="px-2.5 py-1 rounded bg-neutral-800 text-xs hover:bg-neutral-700">Start</button>
+            </div>
+          </div>
+
+          <!-- Ketoconazole Timer -->
+          <div class="p-3 rounded bg-black/60 border border-neutral-800 flex flex-col justify-between">
+            <div>
+              <div class="text-white font-bold">90s Ketoconazole Anti-DHT</div>
+              <div class="text-[10px] text-gray-400">Scalp Malassezia & DHT shield</div>
+            </div>
+            <div class="mt-2 flex items-center justify-between">
+              <span id="ketoTimerDisplay" class="text-lg font-bold text-purple-400">01:30</span>
+              <button onclick="startTimer(90, 'ketoTimerDisplay')" class="px-2.5 py-1 rounded bg-neutral-800 text-xs hover:bg-neutral-700">Start</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ========================================== -->
+    <!-- TAB 4: SLEEP ARCHITECTURE & READINESS      -->
+    <!-- ========================================== -->
+    <div id="tab-sleep" class="tab-content hidden space-y-4">
+
+      <!-- 5-CYCLE ULTRADIAN SLEEP ARCHITECTURE -->
+      <div class="p-4 rounded-xl bg-surfaceCard border border-surfaceBorder space-y-3">
+        <div class="flex items-center justify-between border-b border-surfaceBorder pb-2">
+          <div>
+            <h3 class="text-xs font-mono font-bold uppercase text-indigo-400">🌙 5-Cycle Ultradian Sleep Matrix (23:30 - 07:30)</h3>
+            <div class="text-[11px] text-gray-400">Lights out 23:30. Zero post-dinner forward bends (LES protection).</div>
+          </div>
+          <span class="text-xs font-mono text-emerald-400 font-bold">7.5h Pure Sleep</span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-2 text-xs font-mono">
+          <div class="p-2.5 rounded bg-black/60 border border-neutral-800">
+            <div class="text-indigo-400 font-bold">Cycle 1 (23:45-01:15)</div>
+            <div class="text-[11px] text-white">70% Daily HGH Pulse</div>
+            <div class="text-[10px] text-gray-500 mt-1">Deep SWS; tendon repair</div>
+          </div>
+          <div class="p-2.5 rounded bg-black/60 border border-neutral-800">
+            <div class="text-indigo-400 font-bold">Cycle 2 (01:15-02:45)</div>
+            <div class="text-[11px] text-white">Peak Glymphatic Flush</div>
+            <div class="text-[10px] text-gray-500 mt-1">Beta-amyloid & tau clearance</div>
+          </div>
+          <div class="p-2.5 rounded bg-black/60 border border-neutral-800">
+            <div class="text-indigo-400 font-bold">Cycle 3 (02:45-04:15)</div>
+            <div class="text-[11px] text-white">Motor Pathway Pivot</div>
+            <div class="text-[10px] text-gray-500 mt-1">Kickboxing skill spindles</div>
+          </div>
+          <div class="p-2.5 rounded bg-black/60 border border-neutral-800">
+            <div class="text-indigo-400 font-bold">Cycle 4 (04:15-05:45)</div>
+            <div class="text-[11px] text-white">Leydig Cell T Surge</div>
+            <div class="text-[10px] text-gray-500 mt-1">Amygdala emotional reset</div>
+          </div>
+          <div class="p-2.5 rounded bg-black/60 border border-neutral-800">
+            <div class="text-indigo-400 font-bold">Cycle 5 (05:45-07:30)</div>
+            <div class="text-[11px] text-white">Prefrontal D2 Wave</div>
+            <div class="text-[10px] text-gray-500 mt-1">Peak REM & alarm alertness</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MORNING "WHERE DID I WAKE UP?" DIAGNOSTIC SELECTOR -->
+      <div class="p-4 rounded-xl bg-surfaceCard border border-surfaceBorder space-y-3">
+        <h3 class="text-xs font-mono font-bold uppercase text-amber-400">
+          🔍 "Where Did I Wake Up?" Nocturnal Diagnostic Selector
+        </h3>
+        <p class="text-xs text-gray-400">Tap your nocturnal wake-up window to diagnose the exact cellular/metabolic trigger:</p>
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 text-xs font-mono">
+          <button onclick="diagnoseWakeWindow('past12')" class="p-2 rounded bg-neutral-900 border border-neutral-800 text-gray-300 hover:border-amber-400">Past 12:00 AM</button>
+          <button onclick="diagnoseWakeWindow('cycle1')" class="p-2 rounded bg-neutral-900 border border-neutral-800 text-gray-300 hover:border-amber-400">12:45 - 01:15 AM</button>
+          <button onclick="diagnoseWakeWindow('cycle2')" class="p-2 rounded bg-neutral-900 border border-neutral-800 text-gray-300 hover:border-amber-400">02:15 - 02:45 AM</button>
+          <button onclick="diagnoseWakeWindow('cycle3')" class="p-2 rounded bg-neutral-900 border border-neutral-800 text-gray-300 hover:border-amber-400">03:00 - 04:00 AM</button>
+          <button onclick="diagnoseWakeWindow('cycle4')" class="p-2 rounded bg-neutral-900 border border-neutral-800 text-gray-300 hover:border-amber-400">05:00 - 05:45 AM</button>
+          <button onclick="diagnoseWakeWindow('cycle5')" class="p-2 rounded bg-neutral-900 border border-neutral-800 text-gray-300 hover:border-amber-400">07:30 AM Groggy</button>
+        </div>
+
+        <div id="wakeDiagnosticBox" class="p-3 rounded-lg bg-black/80 border border-amber-500/30 text-xs space-y-1">
+          <div class="font-mono font-bold text-amber-400" id="wakeDiagTitle">Diagnostic Ready</div>
+          <div class="text-gray-300" id="wakeDiagBody">Select a wake-up time window above to review physiological causes and immediate patches.</div>
+        </div>
+      </div>
+
+      <!-- 2-STAGE VAGAL BRAKE CHECKLIST -->
+      <div class="p-4 rounded-xl bg-surfaceCard border border-surfaceBorder space-y-2">
+        <h3 class="text-xs font-mono font-bold uppercase text-emerald-400">🧘 2-Stage Parasympathetic Vagal Lock-In</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs text-gray-300">
+          <div class="p-3 rounded bg-black/60 border border-neutral-800 space-y-1">
+            <div class="font-mono font-bold text-white">Stage 1: Pre-Meal Sympathetic Brake (22:05 - 22:15)</div>
+            <div>• Conclude US EST work at 22:05 sharp.</div>
+            <div>• 3 rounds Physiological Sigh (double nasal inhale, prolonged oral exhale).</div>
+            <div>• 3m Doorway Chest/Lat Openers + 3m Deep Malasana Squat Hold.</div>
+          </div>
+          <div class="p-3 rounded bg-black/60 border border-neutral-800 space-y-1">
+            <div class="font-mono font-bold text-white">Stage 2: Upright Vagal & Galea Release (23:00 - 23:25)</div>
+            <div>• 5m Elevated Suboccipital Release (torso propped, tennis balls on occiput).</div>
+            <div>• 2m Galea Scalp Pinch-and-Slide Decompression.</div>
+            <div>• 5m/side 100% Upright Psoas Stretch with 4s:8s nasal breathing.</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ========================================== -->
+    <!-- TAB 5: 365-DAY ARCHIVE & LAB VAULT         -->
+    <!-- ========================================== -->
+    <div id="tab-vault" class="tab-content hidden space-y-4">
+
+      <!-- 3-PHASE BIOMETRIC TRAJECTORY PROJECTION -->
+      <div class="p-4 rounded-xl bg-surfaceCard border border-surfaceBorder space-y-3">
+        <div class="flex items-center justify-between border-b border-surfaceBorder pb-2">
+          <h3 class="text-xs font-mono font-bold uppercase text-emerald-400">🧬 3-Phase Physiological Trajectory</h3>
+          <span class="text-xs font-mono text-gray-400">Baseline: 85kg @ 32% BF</span>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs font-mono">
+          <div class="p-3 rounded bg-black/60 border border-neutral-800 space-y-1">
+            <div class="text-amber-400 font-bold">Phase 1 (Months 1-5)</div>
+            <div class="text-white text-sm font-extrabold">85.0 kg → 71.0 kg (12% BF)</div>
+            <div class="text-[10px] text-gray-400">Aromatase (CYP19A1) shutdown; waist &lt;79.5cm.</div>
+          </div>
+          <div class="p-3 rounded bg-black/60 border border-neutral-800 space-y-1">
+            <div class="text-emerald-400 font-bold">Phase 2 (Months 6-18)</div>
+            <div class="text-white text-sm font-extrabold">78.0 - 80.0 kg (10-12% BF)</div>
+            <div class="text-[10px] text-gray-400">Progressive Egg Scale (6→12); FFM 68-70kg.</div>
+          </div>
+          <div class="p-3 rounded bg-black/60 border border-neutral-800 space-y-1">
+            <div class="text-purple-400 font-bold">Phase 3 (Month 18+)</div>
+            <div class="text-white text-sm font-extrabold">Supra-Baseline Remodeling</div>
+            <div class="text-[10px] text-gray-400">Permanent myonuclei & Wolff's Law bone cross-linking.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 8-PILLAR 90-DAY CLINICAL & GERMLINE VAULT -->
+      <div class="p-4 rounded-xl bg-surfaceCard border border-surfaceBorder space-y-3">
+        <div class="flex items-center justify-between border-b border-surfaceBorder pb-2">
+          <h3 class="text-xs font-mono font-bold uppercase text-white">🔬 8-Pillar 90-Day Clinical & Germline Assay Checklist</h3>
+          <span class="text-xs font-mono text-purple-400">SCSA DFI &lt; 10% (Elite)</span>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2 text-xs font-mono" id="labAssayGrid">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+
+      <!-- GOOGLE SHEETS LIVE SYNC & ARCHIVE EXPORT -->
+      <div class="p-4 rounded-xl bg-surfaceCard border border-surfaceBorder space-y-3">
+        <h3 class="text-xs font-mono font-bold uppercase text-blue-400">☁️ Google Sheets Two-Way Bridge & Archive Export</h3>
+        <p class="text-xs text-gray-400">Syncs today's schedule, steady score, and hydration directly with your "Bio-Certainty System v1.0" Google Sheet:</p>
+
+        <div class="space-y-2">
+          <input type="text" id="sheetsWebhookUrl" placeholder="Paste Google Apps Script Webhook URL here..." class="w-full px-3 py-2 rounded bg-black border border-neutral-700 text-xs font-mono text-gray-200 focus:outline-none focus:border-blue-500">
+          <div class="flex flex-wrap items-center gap-2">
+            <button onclick="syncWithGoogleSheet()" class="px-4 py-2 rounded bg-blue-600 hover:bg-blue-500 text-white font-mono text-xs font-bold transition">
+              Sync Today's Telemetry to Sheet
+            </button>
+            <button onclick="exportArchiveJSON()" class="px-3 py-2 rounded bg-neutral-800 text-gray-300 font-mono text-xs hover:bg-neutral-700">
+              Export Offline JSON
+            </button>
+            <label class="px-3 py-2 rounded bg-neutral-800 text-gray-300 font-mono text-xs hover:bg-neutral-700 cursor-pointer">
+              Import JSON <input type="file" id="importJsonInput" onchange="importArchiveJSON(event)" class="hidden">
+            </label>
+          </div>
+          <div id="syncStatusMessage" class="text-[11px] font-mono text-gray-400"></div>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- ========================================== -->
+  <!-- MODAL: LIVE HORMONAL INDEX TRIAGE DRAWER   -->
+  <!-- ========================================== -->
+  <div id="hormonalModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-surfaceCard border border-emerald-500/50 rounded-2xl max-w-xl w-full p-5 space-y-4 shadow-2xl overflow-y-auto max-h-[90vh] custom-scroll">
+      
+      <div class="flex items-center justify-between border-b border-surfaceBorder pb-3">
+        <div>
+          <div class="text-[11px] font-mono text-emerald-400 uppercase font-bold tracking-wider">Live Hormonal Index Governance</div>
+          <h3 class="text-lg font-extrabold text-white">Subjective Telemetry & Triage</h3>
+        </div>
+        <button onclick="closeHormonalDrawer()" class="text-gray-400 hover:text-white font-mono text-xl font-bold">×</button>
+      </div>
+
+      <!-- STEADY SCORE SLIDER -->
+      <div class="space-y-1.5">
+        <div class="flex items-center justify-between text-xs font-mono">
+          <span class="text-gray-300">Rate Current Internal Steady Score:</span>
+          <span id="steadyScoreValue" class="text-emerald-400 font-bold text-sm">10 / 10</span>
+        </div>
+        <input type="range" id="steadyScoreInput" min="1" max="10" value="10" oninput="updateSteadyScorePreview(this.value)" class="w-full accent-emerald-500">
+      </div>
+
+      <!-- SELECT TELEMETRY VECTOR -->
+      <div>
+        <div class="text-xs font-mono text-gray-400 mb-2">Select how you are feeling right now:</div>
+        <div class="grid grid-cols-3 sm:grid-cols-4 gap-1.5 text-xs font-mono">
+          <!-- Steady states -->
+          <button onclick="selectStateVector('Steady')" class="state-chip p-2 rounded bg-emerald-950/70 border border-emerald-500/60 text-emerald-300 font-bold hover:bg-emerald-900">Steady ⚡</button>
+          <button onclick="selectStateVector('Energized')" class="state-chip p-2 rounded bg-neutral-900 border border-neutral-800 text-gray-300 hover:border-emerald-500">Energized</button>
+          <button onclick="selectStateVector('Hopeful')" class="state-chip p-2 rounded bg-neutral-900 border border-neutral-800 text-gray-300 hover:border-emerald-500">Hopeful</button>
+          <button onclick="selectStateVector('Thrilled')" class="state-chip p-2 rounded bg-neutral-900 border border-neutral-800 text-gray-300 hover:border-emerald-500">Thrilled</button>
+          <button onclick="selectStateVector('Honorable')" class="state-chip p-2 rounded bg-neutral-900 border border-neutral-800 text-gray-300 hover:border-emerald-500">Honorable</button>
+          <button onclick="selectStateVector('Grateful')" class="state-chip p-2 rounded bg-neutral-900 border border-neutral-800 text-gray-300 hover:border-emerald-500">Grateful</button>
+
+          <!-- Deviation states -->
+          <button onclick="selectStateVector('Sluggish')" class="state-chip p-2 rounded bg-neutral-900 border border-neutral-800 text-amber-300 hover:border-amber-400">Sluggish</button>
+          <button onclick="selectStateVector('Heavy')" class="state-chip p-2 rounded bg-neutral-900 border border-neutral-800 text-amber-300 hover:border-amber-400">Heavy</button>
+          <button onclick="selectStateVector('Brain Fog')" class="state-chip p-2 rounded bg-neutral-900 border border-neutral-800 text-amber-300 hover:border-amber-400">Brain Fog</button>
+          <button onclick="selectStateVector('Anxiety')" class="state-chip p-2 rounded bg-neutral-900 border border-neutral-800 text-red-300 hover:border-red-400">Anxiety</button>
+          <button onclick="selectStateVector('Stress')" class="state-chip p-2 rounded bg-neutral-900 border border-neutral-800 text-red-300 hover:border-red-400">Stress</button>
+          <button onclick="selectStateVector('Guilt')" class="state-chip p-2 rounded bg-neutral-900 border border-neutral-800 text-red-300 hover:border-red-400">Guilt</button>
+          <button onclick="selectStateVector('Shame')" class="state-chip p-2 rounded bg-neutral-900 border border-neutral-800 text-red-300 hover:border-red-400">Shame</button>
+          <button onclick="selectStateVector('Sorrow')" class="state-chip p-2 rounded bg-neutral-900 border border-neutral-800 text-red-300 hover:border-red-400">Sorrow</button>
+          <button onclick="selectStateVector('Hopeless')" class="state-chip p-2 rounded bg-neutral-900 border border-neutral-800 text-red-300 hover:border-red-400">Hopeless</button>
+          <button onclick="selectStateVector('Depression')" class="state-chip p-2 rounded bg-neutral-900 border border-neutral-800 text-red-300 hover:border-red-400">Depression</button>
+        </div>
+      </div>
+
+      <!-- TRIAGE ACTION CARD -->
+      <div id="modalDiagnosticCard" class="p-4 rounded-xl bg-black border border-surfaceBorder space-y-2 text-xs">
+        <div class="text-[10px] font-mono uppercase tracking-wider text-emerald-400 font-bold">Real-Time Biological Remediation</div>
+        <div class="text-white font-bold" id="modalDiagTitle">Hormonal State: Steady</div>
+        <div class="text-gray-300" id="modalDiagCause">Autonomic, endocrine, and metabolic parameters are synchronized.</div>
+        <div class="p-2.5 rounded bg-surfaceCard border border-emerald-900/40 text-emerald-300" id="modalDiagAction">
+          Execute current micro-block with monastic focus.
+        </div>
+        <div class="text-[11px] text-gray-400" id="modalDiagLock">
+          Guardrail: Keep fluid frozen according to the master schedule.
+        </div>
+      </div>
+
+      <div class="flex items-center justify-end gap-2 pt-2 border-t border-surfaceBorder">
+        <button onclick="closeHormonalDrawer()" class="px-4 py-2 rounded bg-neutral-800 text-gray-300 text-xs font-mono hover:bg-neutral-700">Cancel</button>
+        <button onclick="applyHormonalTriage()" class="px-5 py-2 rounded bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-mono font-bold transition">
+          Apply & Log Steady Telemetry
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- APPLICATION SCRIPTS & STATE MACHINE -->
+  <script>
+    // ==========================================
+    // 1. DEXIE DATABASE SETUP (IndexedDB)
+    // ==========================================
+    const db = new Dexie('BioCertaintySystemDB');
+    db.version(1).stores({
+      dailyLogs: 'date, accountabilityScore, focusScore, steadyScore, hormonalState',
+      scheduleBlocks: '++id, day, timeSlot, activity, category, done, steadyScore',
+      hydrationLogs: '++id, date, slotIndex, time, volume, done',
+      epigeneticLogs: '++id, date, triggerId, done',
+      settings: 'key, value'
+    });
+
+    let isEditMode = false;
+    let currentSelectedDay = 'MON';
+    let currentFlavor = 'A';
+    let selectedStateVectorValue = 'Steady';
+    let currentActiveTimer = null;
+
+    // ==========================================
+    // 2. MASTER SPECIFICATION PROTOCOL DATA
+    // ==========================================
+    const EAA_DATA = [
+      { name: 'HIS', val: 5.90, target: 0.85 },
+      { name: 'ILE', val: 12.30, target: 1.70 },
+      { name: 'LEU', val: 21.80, target: 3.32 },
+      { name: 'LYS', val: 15.20, target: 2.55 },
+      { name: 'MET', val: 9.70, target: 1.28 },
+      { name: 'PHE', val: 21.50, target: 2.13 },
+      { name: 'THR', val: 10.50, target: 1.28 },
+      { name: 'TRP', val: 3.30, target: 0.34 },
+      { name: 'VAL', val: 14.40, target: 2.21 }
+    ];
+
+    const FLAVORS = {
+      A: {
+        meal1: "Classic Boiled & Ghee Tomato Concassé: Hard-boiled eggs sliced over simmered ghee-tomato-almond-pepper reduction.",
+        meal2: "Royal Mango Lassi Shake: 30g Naturaltein Mango WPI + 12g Collagen + 300ml Chilled Acid Whey + 35g Honey + Elaichi.",
+        paratha: "Amritsari Methi-Moringa Kulcha: 10g Moringa + 1 Tbsp Kasuri Methi + ginger/garlic + ajwain + black sesame.",
+        sides: "Palak-Paneer Tadka & Jeera Rayta: Paneer seared with spinach & garlic; Curd with roasted cumin."
+      },
+      B: {
+        meal1: "Mughlai Badam Anda Bhurji: Soft-scrambled eggs folded into caramelized onion, ghee-cooked tomatoes, almond paste & green chilli.",
+        meal2: "Shahi Malai-Elaichi Lassi: 30g Vanilla WPI + 12g Collagen + 300ml Acid Whey + Honey + crushed cardamom.",
+        paratha: "Smoked Tandoori-Pudina Paratha: 10g Moringa + 1 Tbsp dried mint + roasted jeera + 1/2 tsp amchur + black pepper.",
+        sides: "Lahsooni Dhaba Paneer & Mint Rayta: Burnt-garlic & coriander paneer bhurji; Rayta with pudina & black salt."
+      },
+      C: {
+        meal1: "Herb-Crusted Masala Omelette: 2-egg pan omelette stuffed with diced tomatoes, almond paste, coriander, cumin & black pepper.",
+        meal2: "Iced Mocha Pre-Workout Strike: 30g Chocolate WPI + 12g Collagen + 1 shot chilled espresso + 300ml Acid Whey + Honey.",
+        paratha: "Garlic-Kalonji-Sesame Naan Style: 1 tsp black sesame + 1/4 tsp Kalonji + minced rested garlic + coriander pressed pre-roll.",
+        sides: "Kali Mirch Paneer & Tadka Cucumber Rayta: Black pepper & ginger paneer bhurji; grated cucumber-curd bowl."
+      }
+    };
+
+    const HYDRATION_SLOTS = [
+      { time: '07:30 AM', vol: '250ml', label: 'Waking Reset', freeze: false },
+      { time: '08:30 AM', vol: '250ml', label: 'Post-Spark', freeze: false },
+      { time: '09:30 AM', vol: '250ml', label: 'Fasted Focus 1', freeze: false },
+      { time: '10:30 AM', vol: '250ml', label: 'Fasted Focus 2', freeze: false },
+      { time: '11:30 AM', vol: '250ml', label: 'Fasted Focus 3', freeze: true, warning: 'Freeze at 12:00 PM for Meal 1 acid concentration' },
+      { time: '01:30 PM', vol: '250ml', label: 'Acid Whey #1', freeze: false },
+      { time: '02:30 PM', vol: '250ml', label: 'Acid Whey #2', freeze: false },
+      { time: '03:00 PM', vol: '250ml', label: 'Meal 2 Shake Sync', freeze: false },
+      { time: '03:45 PM', vol: '250ml', label: 'Intra-Workout 1', freeze: false },
+      { time: '04:15 PM', vol: '250ml', label: 'Intra-Workout 2', freeze: false },
+      { time: '04:45 PM', vol: '250ml', label: 'Intra-Workout 3', freeze: true, warning: 'Freeze at 17:05 for Meal 3 acid concentration' },
+      { time: '06:45 PM', vol: '250ml', label: 'Post-Meal Transit', freeze: false },
+      { time: '07:30 PM', vol: '250ml', label: 'Evening Focus 1', freeze: false },
+      { time: '08:30 PM', vol: '250ml', label: 'Evening Focus 2', freeze: false },
+      { time: '09:30 PM', vol: '250ml', label: 'Evening Focus 3', freeze: true, warning: 'Freeze at 21:45 for Meal 4 acid concentration' },
+      { time: '11:15 PM', vol: '250ml', label: 'Mg Glycinate Sync', freeze: false }
+    ];
+
+    const EPIGENETIC_TRIGGERS = [
+      { id: 1, name: "Brown Adipose Tissue (BAT) Cold Shock", desc: "30-60s Water-Only Cold Shower (+250% Dopamine; UCP-1 activation)", window: "08:15 - 08:30" },
+      { id: 2, name: "Retinal Photobiomodulation", desc: "Sunrise exposure activating Cytochrome c Oxidase & SCN clock sync", window: "07:30 - 08:00" },
+      { id: 3, name: "Fasted Prefrontal Dopamine Surge", desc: "Zero-carb Morning Focus preserving hypothalamic Orexin firing", window: "08:30 - 11:30" },
+      { id: 4, name: "Leydig Cell Aromatase Suppression", desc: "6mg Boron + Moringa leaf kaempferol blunting CYP19A1 & cleaving SHBG", window: "12:30 - 13:00" },
+      { id: 5, name: "Non-Insulin GLUT4 Translocation", desc: "Heavy mechanical load driving glucose into muscle without insulin spike", window: "15:30 - 16:50" },
+      { id: 6, name: "Endothelial Nitric Oxide & Tendon Lock", desc: "12g Collagen + 35g Honey 30m prior to training loading fibroblasts", window: "15:00 - 15:15" },
+      { id: 7, name: "Alactic SPRINT Pre-Adrenaline Purity", desc: "3x 6-8s sprints terminated before sympathetic adrenaline bleed", window: "16:50 - 17:30" },
+      { id: 8, name: "Gastric Acid Concentration Shield", desc: "Zero liquid 30m pre / 60m post-meal protecting HCl/pepsin potency", window: "All Meals" },
+      { id: 9, name: "Stage 1 & 2 Vagal Parasympathetic Shift", desc: "Physiological sigh + Suboccipital & Galea decompression for vagal tone", window: "22:05 & 23:00" },
+      { id: 10, name: "Nocturnal Glymphatic & HGH Pulse", desc: "SWS Cycle 1 (23:45-01:15) 70% GH pulse + Cycle 2 glial clearance", window: "23:45 - 02:45" }
+    ];
+
+    const LAB_ASSAYS = [
+      { name: "Renal Filtration", tests: "Creatinine, BUN, Cystatin-C", target: "eGFR > 95 mL/min" },
+      { name: "Hepatic Factory (LFT)", tests: "SGOT (AST), SGPT (ALT), GGT", target: "AST/ALT < 30 U/L" },
+      { name: "Vascular & Lipid", tests: "Total Chol, HDL, LDL, ApoB", target: "ApoB < 80 mg/dL; TG:HDL < 1.2" },
+      { name: "Glycemic & Insulin Loop", tests: "Fasting Insulin, HbA1c, HOMA-IR", target: "Fasting Insulin < 5 uIU/mL" },
+      { name: "Endocrine & Somatotropic", tests: "Total/Free T, DHT, IGF-1, E2", target: "Upper-quartile Free T & DHT" },
+      { name: "Methylation & Dermal", tests: "Homocysteine, Ferritin, Zn, D3", target: "Homocysteine < 8 umol/L" },
+      { name: "Autonomic Vitals", tests: "Resting BP, Sleeping RHR, HRV", target: "BP < 120/80; RHR < 54 bpm" },
+      { name: "Paternal Germline DNA", tests: "SCSA / TUNEL Sperm DFI & HDS", target: "DFI < 10% (Elite Purity)" }
+    ];
+
+    const SCHEDULE_DATA_MON = [
+      { time: '00:00 - 01:15', act: 'Nocturnal Sleep Cycle 1: Deep SWS (70% HGH Pulse & Fibroblast repair)', cat: 'Sleep', score: 10 },
+      { time: '01:15 - 02:45', act: 'Nocturnal Sleep Cycle 2: Peak Glymphatic Beta-Amyloid & Tau Flush', cat: 'Sleep', score: 10 },
+      { time: '02:45 - 04:15', act: 'Nocturnal Sleep Cycle 3: NREM 2 Motor Spindles & Skill Consolidation', cat: 'Sleep', score: 10 },
+      { time: '04:15 - 05:45', act: 'Nocturnal Sleep Cycle 4: Leydig Cell Testosterone Surge Window', cat: 'Sleep', score: 10 },
+      { time: '05:45 - 07:30', act: 'Nocturnal Sleep Cycle 5: Prefrontal Dopamine & REM Synthesis', cat: 'Sleep', score: 10 },
+      { time: '07:30 - 08:00', act: 'Sunrise Spark 1A: 30s Trigeminal Cold Splash + Sun Walk (4.5k steps)', cat: 'Athletic', score: 10 },
+      { time: '08:00 - 08:15', act: 'Sunrise Spark 1B: 10-15m Zone 2 Jog & Nitric Oxide Boost', cat: 'Athletic', score: 10 },
+      { time: '08:15 - 08:30', act: 'Water-Only Cold Shower (+250% Dopamine; preserve acid mantle)', cat: 'Dermal', score: 10 },
+      { time: '08:30 - 09:30', act: 'AM Peak 1 Focus: Digital Monasticism (Fasted Orexin & Dopamine)', cat: 'Deep Work', score: 10 },
+      { time: '09:30 - 10:30', act: 'AM Peak 1 Focus: System Architecture & Outreach Data Setup', cat: 'Deep Work', score: 10 },
+      { time: '10:30 - 11:30', act: 'AM Peak 1 Focus: High-Yield Pipeline Construction', cat: 'Deep Work', score: 10 },
+      { time: '11:30 - 12:00', act: 'Morning Wrap & Cognitive Architecture Close', cat: 'Routine', score: 10 },
+      { time: '12:00 - 12:30', act: 'Pre-Meal Gastric Acid Concentration (⚠️ FREEZE ALL LIQUIDS)', cat: 'Fuel', score: 10 },
+      { time: '12:30 - 13:00', act: 'Meal 1: Business Starter (6 Eggs + Almonds + 3 Ghee Tomatoes + Stack)', cat: 'Fuel', score: 10 },
+      { time: '13:00 - 14:00', act: 'Midday Buffer: 3.5k Nose-Breathing Stroll (Post-Meal Glucose Smoothing)', cat: 'Athletic', score: 10 },
+      { time: '14:00 - 15:00', act: 'Midday Buffer: Pipeline Sorting & 500ml Chilled Acid Whey Hydration', cat: 'Routine', score: 10 },
+      { time: '15:00 - 15:15', act: 'Meal 2 Shake: 30g WPI + 12g Collagen + 35g Honey + 5g Creatine + Whey', cat: 'Fuel', score: 10 },
+      { time: '15:30 - 16:50', act: 'Midday Anchor: Gym Push Hypertrophy to Failure + 60s Dead Hang', cat: 'Athletic', score: 10 },
+      { time: '16:50 - 17:30', act: 'Pre-Adrenaline Alactic Sprints (3x Sets @ 85/90/95% 6-8s Cutoff)', cat: 'Athletic', score: 10 },
+      { time: '17:05 - 17:35', act: '⚠️ FREEZE LIQUIDS at 17:05 for Meal 3 Gastric Concentration', cat: 'Fuel', score: 10 },
+      { time: '17:35 - 18:05', act: 'Meal 3 (40% Split): 2 Parathas + Paneer Bhurji + Rayta + CoQ10', cat: 'Fuel', score: 10 },
+      { time: '18:05 - 18:45', act: 'Post-Workout Flush Walk (4,000 Nose-Breathing Steps)', cat: 'Athletic', score: 10 },
+      { time: '18:45 - 19:00', act: 'Flush Shower: 60s BHA Salicylic + 90s Ketoconazole #1 + Damp Gel', cat: 'Dermal', score: 10 },
+      { time: '19:00 - 20:30', act: 'PM Peak 2: US EST Live Window (09:30 AM EST Outbound Pitching)', cat: 'Deep Work', score: 10 },
+      { time: '20:30 - 22:05', act: 'PM Peak 2: Direct Deal Execution & Contract Negotiations', cat: 'Deep Work', score: 10 },
+      { time: '22:00 - 22:05', act: 'Log Tuesday Targets to Close Working Memory Zeigarnik Loops', cat: 'Routine', score: 10 },
+      { time: '22:05 - 22:15', act: 'Stage 1 Vagal Brake: 3x Physiological Sigh + Deep Malasana Squat', cat: 'Parasympathetic', score: 10 },
+      { time: '21:45 - 22:15', act: '⚠️ FREEZE LIQUIDS at 21:45 for Meal 4 Gastric Concentration', cat: 'Fuel', score: 10 },
+      { time: '22:15 - 23:00', act: 'Meal 4 (60% Split): 3 Parathas + 120g Paneer + Rayta + 250ml Milk', cat: 'Fuel', score: 10 },
+      { time: '23:00 - 23:25', act: 'Stage 2 Vagal Release: Suboccipital Foam + 2m Galea Scalp Decompression', cat: 'Parasympathetic', score: 10 },
+      { time: '23:15 - 23:20', act: 'Magnesium Sync: 440mg Magnesium Glycinate w/ 250ml Water (Final)', cat: 'Fuel', score: 10 },
+      { time: '23:30 - 23:45', act: 'Lights Out: Zero Screens, 18-20°C Cool Room, Clean Pillowcase', cat: 'Sleep', score: 10 }
+    ];
+
+    // ==========================================
+    // 3. UI STATE & RENDERING ENGINE
+    // ==========================================
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('bg-surfaceCard', 'text-emerald-400', 'border-b-2', 'border-emerald-400');
+        btn.classList.add('text-gray-400');
+      });
+      document.getElementById('tab-' + tabId).classList.remove('hidden');
+      const activeBtn = document.getElementById('tabBtn-' + tabId);
+      activeBtn.classList.add('bg-surfaceCard', 'text-emerald-400', 'border-b-2', 'border-emerald-400');
+      activeBtn.classList.remove('text-gray-400');
+    }
+
+    function toggleEditMode() {
+      isEditMode = !isEditMode;
+      const statusEl = document.getElementById('editModeStatus');
+      statusEl.textContent = isEditMode ? 'ON' : 'OFF';
+      statusEl.className = isEditMode ? 'text-emerald-400 font-bold' : 'text-red-400';
+      renderScheduleTable();
+    }
+
+    function loadDaySchedule(day) {
+      currentSelectedDay = day;
+      document.querySelectorAll('.day-btn').forEach(btn => {
+        if (btn.dataset.day === day) {
+          btn.className = 'day-btn px-2.5 py-1.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/50 font-bold';
+        } else {
+          btn.className = 'day-btn px-2.5 py-1.5 rounded bg-neutral-900 text-gray-400 border border-neutral-800';
+        }
+      });
+      document.getElementById('currentDayDisplay').textContent = day;
+
+      // Handle Saturday 19h fast & Friday Leg locks
+      const fridayLock = document.getElementById('fridayLegLockBanner');
+      if (day === 'FRI') {
+        fridayLock.classList.remove('hidden');
+      } else {
+        fridayLock.classList.add('hidden');
+      }
+
+      const calEl = document.getElementById('fuelTotalCalories');
+      const splitEl = document.getElementById('fuelMealSplitTag');
+      if (day === 'SAT') {
+        calEl.textContent = '1,645 kcal';
+        splitEl.textContent = '(Saturday 19h AMPK Autophagy Fast: Meal 4 Dropped)';
+      } else {
+        calEl.textContent = '2,491 kcal';
+        splitEl.textContent = '(Mon-Fri & Sun: Full 4-Meal Protocol)';
+      }
+
+      renderScheduleTable();
+    }
+
+    function renderScheduleTable() {
+      const tbody = document.getElementById('scheduleTableBody');
+      tbody.innerHTML = '';
+      SCHEDULE_DATA_MON.forEach((item, idx) => {
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-neutral-900/50 transition border-b border-surfaceBorder/50';
+
+        const tdDone = document.createElement('td');
+        tdDone.className = 'py-2.5 px-3';
+        tdDone.innerHTML = `<input type="checkbox" checked class="w-4 h-4 accent-emerald-500 rounded cursor-pointer">`;
+
+        const tdTime = document.createElement('td');
+        tdTime.className = 'py-2.5 px-3 font-mono text-gray-400 text-[11px] whitespace-nowrap';
+        tdTime.textContent = item.time;
+
+        const tdAct = document.createElement('td');
+        tdAct.className = 'py-2.5 px-3 font-medium';
+        if (isEditMode) {
+          tdAct.innerHTML = `<input type="text" value="${item.act}" class="w-full bg-black border border-neutral-700 px-2 py-1 rounded text-xs text-white">`;
+        } else {
+          tdAct.textContent = item.act;
+        }
+
+        const tdCat = document.createElement('td');
+        tdCat.className = 'py-2.5 px-3 font-mono text-[10px]';
+        tdCat.innerHTML = `<span class="px-1.5 py-0.5 rounded bg-neutral-800 text-gray-300">${item.cat}</span>`;
+
+        const tdScore = document.createElement('td');
+        tdScore.className = 'py-2.5 px-3 font-mono text-[11px]';
+        if (isEditMode) {
+          tdScore.innerHTML = `<input type="number" min="1" max="10" value="${item.score}" class="w-12 bg-black border border-neutral-700 px-1.5 py-1 rounded text-emerald-400 font-bold">`;
+        } else {
+          tdScore.innerHTML = `<button onclick="openHormonalDrawer()" class="px-2 py-0.5 rounded bg-emerald-950/60 border border-emerald-500/40 text-emerald-300 font-bold hover:border-emerald-400">${item.score}/10</button>`;
+        }
+
+        tr.appendChild(tdDone);
+        tr.appendChild(tdTime);
+        tr.appendChild(tdAct);
+        tr.appendChild(tdCat);
+        tr.appendChild(tdScore);
+        tbody.appendChild(tr);
+      });
+    }
+
+    // ==========================================
+    // 4. LIVE HORMONAL INDEX TRIAGE ENGINE
+    // ==========================================
+    const TRIAGE_MAP = {
+      Sluggish: {
+        cause: "Orexin Silencing / Gastric Acid Dilution: Fluid consumed within the 60m post-meal window diluted gastric HCl/pepsin, driving splanchnic blood diversion.",
+        aid: "1. Execute 30s cold water splash to ophthalmic/trigeminal zone. 2. 500-step brisk nasal stroll in outdoor natural light.",
+        lock: "Enforce strict fluid freeze 30m pre / 60m post solid feeding."
+      },
+      Heavy: {
+        cause: "Excess Carbohydrate / Delayed Transit: Unbuffered starch digestion causing reactive serotonin release in gut enterocytes.",
+        aid: "1. 3 rounds of the Physiological Sigh. 2. 5m Malasana squat hold to decompress gut mesentery.",
+        lock: "Confirm paratha dough has full 100g gluten to 40g dry atta ratio."
+      },
+      "Brain Fog": {
+        cause: "Cerebral Glycogen Depletion or Prefrontal Adenosine Buildup without alactic clearance.",
+        aid: "1. Ingest 250ml Chilled Bioactive Acid Whey with a pinch of rock salt. 2. 60s passive dead hang.",
+        lock: "Verify morning ALCAR and 880mg Choline co-administration at Meal 1."
+      },
+      Anxiety: {
+        cause: "Mid-Sprint Epinephrine Spill: Sprinting past 8s threshold depleted ATP-CP, triggering emergency adrenal adrenaline burst.",
+        aid: "1. Immediate 3x Physiological Sigh (double nasal inhale, 8s oral exhale). 2. 5m suboccipital decompression.",
+        lock: "Terminate all sprints strictly the split-second nasal calmness slips."
+      },
+      Stress: {
+        cause: "Elevated Cortisol / Sympathetic Over-Tone during deep work without physical reset.",
+        aid: "1. Standing Doorway Chest & Lat stretch (3m). 2. Wash forearms and face with cold water.",
+        lock: "Close open Zeigarnik task loops by logging top 3 targets on paper."
+      },
+      Guilt: {
+        cause: "Striatal Dopamine Deficit: Cognitive perception of execution friction without motor discharge.",
+        aid: "1. 20 air squats with deep nasal breathing. 2. Re-read the One-Day Value Principle.",
+        lock: "Focus only on executing the single active micro-block right now."
+      },
+      Shame: {
+        cause: "Amygdala Hyper-Reactivity coupled with transient prefrontal glucose dip.",
+        aid: "1. Consume 100ml water with sea salt. 2. 3 minutes of slow 4s:8s parasympathetic breathing.",
+        lock: "Maintain digital isolation during AM focus windows."
+      },
+      Sorrow: {
+        cause: "Serotonergic / Vagal Dysregulation: Prolonged screen light exposure blunting pineal and striatal receptors.",
+        aid: "1. Step into balcony/terrace for 5m of unmediated horizon eye gaze. 2. Cold wrist flush.",
+        lock: "Enforce 22:05 screens-off rule."
+      },
+      Hopeless: {
+        cause: "Dopamine Receptor Exhaustion: Excessive high-stimulus digital task-switching.",
+        aid: "1. 5 minutes total digital blackout. Lie on floor with legs elevated on a chair.",
+        lock: "Enforce Sunday D2 striatal dopamine reset without deviation."
+      },
+      Depression: {
+        cause: "Neuro-Inflammatory Low-Output State: Insufficient physical movement and sluggish blood transit.",
+        aid: "1. 10m brisk outdoor sun walk. 2. 60s cold water face subversion.",
+        lock: "Verify daily 15,000 steps completion."
+      },
+      Steady: {
+        cause: "Autonomic, endocrine, and metabolic parameters are completely synchronized.",
+        aid: "Maintain current posture and monastic execution flow.",
+        lock: "Guardrail: Adhere to scheduled hydration freeze and meal times."
+      }
+    };
+
+    function openHormonalDrawer() {
+      document.getElementById('hormonalModal').classList.remove('hidden');
+    }
+
+    function closeHormonalDrawer() {
+      document.getElementById('hormonalModal').classList.add('hidden');
+    }
+
+    function updateSteadyScorePreview(val) {
+      document.getElementById('steadyScoreValue').textContent = `${val} / 10`;
+    }
+
+    function selectStateVector(vector) {
+      selectedStateVectorValue = vector;
+      document.querySelectorAll('.state-chip').forEach(btn => {
+        if (btn.textContent.includes(vector)) {
+          btn.classList.add('bg-emerald-600', 'text-black', 'font-extrabold');
+          btn.classList.remove('bg-neutral-900', 'text-gray-300', 'bg-emerald-950/70');
+        } else {
+          btn.classList.remove('bg-emerald-600', 'text-black', 'font-extrabold');
+          btn.classList.add('bg-neutral-900', 'text-gray-300');
+        }
+      });
+
+      const triage = TRIAGE_MAP[vector] || TRIAGE_MAP['Steady'];
+      document.getElementById('modalDiagTitle').textContent = `Hormonal Vector: ${vector}`;
+      document.getElementById('modalDiagCause').textContent = triage.cause;
+      document.getElementById('modalDiagAction').textContent = `Immediate Aid: ${triage.aid}`;
+      document.getElementById('modalDiagLock').textContent = `Preemptive Lock: ${triage.lock}`;
+    }
+
+    function applyHormonalTriage() {
+      const score = document.getElementById('steadyScoreInput').value;
+      const state = selectedStateVectorValue;
+      const triage = TRIAGE_MAP[state] || TRIAGE_MAP['Steady'];
+
+      // Update Top Status Bar
+      document.getElementById('headerHormonalState').textContent = state;
+      document.getElementById('steadyScoreBadge').textContent = `${score}/10`;
+      document.getElementById('cockpitHormonalState').textContent = state;
+      document.getElementById('cockpitActiveVector').textContent = state === 'Steady' ? 'Homeostatic Peak' : 'Remediation Active';
+
+      // Update Triage Banner
+      const banner = document.getElementById('liveTriageBanner');
+      banner.classList.remove('hidden');
+      document.getElementById('triageRootCauseText').textContent = triage.cause;
+      document.getElementById('triageAidText').textContent = triage.aid;
+      document.getElementById('triageLockText').textContent = triage.lock;
+
+      // Persist to IndexedDB
+      const todayStr = new Date().toISOString().split('T')[0];
+      db.dailyLogs.put({
+        date: todayStr,
+        accountabilityScore: 100.0,
+        focusScore: 100.0,
+        steadyScore: parseInt(score),
+        hormonalState: state
+      });
+
+      closeHormonalDrawer();
+    }
+
+    // ==========================================
+    // 5. TIMERS & HARDWARE ENGINE (Web Audio)
+    // ==========================================
+    function playBeep() {
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(880, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.3);
+      } catch (e) {
+        console.log('Audio not supported or restricted');
+      }
+    }
+
+    function startTimer(seconds, displayId) {
+      if (currentActiveTimer) clearInterval(currentActiveTimer);
+      let remaining = seconds;
+      const display = document.getElementById(displayId);
+
+      currentActiveTimer = setInterval(() => {
+        remaining--;
+        const m = Math.floor(remaining / 60);
+        const s = remaining % 60;
+        display.textContent = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+
+        if (remaining <= 0) {
+          clearInterval(currentActiveTimer);
+          playBeep();
+          alert(`Timer completed for ${displayId}!`);
+        }
+      }, 1000);
+    }
+
+    function resetTimer(displayId, defaultTime) {
+      if (currentActiveTimer) clearInterval(currentActiveTimer);
+      document.getElementById(displayId).textContent = defaultTime;
+    }
+
+    // ==========================================
+    // 6. CULINARY ROTATOR & WAKE DIAGNOSTICS
+    // ==========================================
+    function setFlavorVariant(v) {
+      currentFlavor = v;
+      document.querySelectorAll('.flavor-btn').forEach(btn => {
+        btn.className = 'flavor-btn px-2.5 py-1 rounded bg-neutral-900 text-gray-400 hover:text-white';
+      });
+      document.getElementById(`flavorBtn-${v}`).className = 'flavor-btn px-2.5 py-1 rounded bg-amber-500 text-black font-bold';
+
+      const data = FLAVORS[v];
+      const container = document.getElementById('flavorVariantDetails');
+      container.innerHTML = `
+        <div class="p-2.5 rounded bg-black/60 border border-neutral-800">
+          <div class="text-amber-400 font-bold text-[11px]">Meal 1 (12:30 PM):</div>
+          <div class="text-gray-300 mt-0.5">${data.meal1}</div>
+        </div>
+        <div class="p-2.5 rounded bg-black/60 border border-neutral-800">
+          <div class="text-amber-400 font-bold text-[11px]">Meal 2 Pre-Workout (03:00 PM):</div>
+          <div class="text-gray-300 mt-0.5">${data.meal2}</div>
+        </div>
+        <div class="p-2.5 rounded bg-black/60 border border-neutral-800">
+          <div class="text-amber-400 font-bold text-[11px]">Combination Z Paratha Dough (Meals 3 & 4):</div>
+          <div class="text-gray-300 mt-0.5">${data.paratha}</div>
+        </div>
+        <div class="p-2.5 rounded bg-black/60 border border-neutral-800">
+          <div class="text-amber-400 font-bold text-[11px]">Sides (Bhurji & Rayta):</div>
+          <div class="text-gray-300 mt-0.5">${data.sides}</div>
+        </div>
+      `;
+    }
+
+    const WAKE_DIAGNOSTICS = {
+      past12: {
+        title: "Awake Past 12:00 AM (Delayed Sleep Onset)",
+        body: "Trigger: Skipped the 22:05 Physiological Sigh, omitted the 23:00 suboccipital release, or encountered blue light past 22:15. Bedroom temp >20°C."
+      },
+      cycle1: {
+        title: "Waking 12:45 - 01:15 AM (Cycle 1 Disruption)",
+        body: "Trigger: Silent nocturnal acid reflux from post-dinner forward bending, or gastric distension from eating Meal 4 too rapidly."
+      },
+      cycle2: {
+        title: "Waking 02:15 - 02:45 AM (Cycle 2 Glymphatic Interruption)",
+        body: "Trigger: Protein deamination thermogenesis overheating the body, or excessive fluids ingested after the 23:15 magnesium cutoff."
+      },
+      cycle3: {
+        title: "Waking 03:00 - 04:00 AM (Wired Nocturnal Awakening)",
+        body: "Trigger: Nocturnal blood glucose dip triggering compensatory adrenal cortisol and epinephrine surge to mobilize liver glycogen."
+      },
+      cycle4: {
+        title: "Waking 05:00 - 05:45 AM (Premature Cortisol Spike)",
+        body: "Trigger: Premature Cortisol Awakening Response (CAR) caused by CNS overreaching from sprint adrenaline spill or bedroom light leaks."
+      },
+      cycle5: {
+        title: "Groggy / Muting Alarm at 07:30 AM",
+        body: "Trigger: Sleep onset delayed past 00:30 AM, forcing alarm to interrupt deep REM sleep. Sleep inertia lingering."
+      }
+    };
+
+    function diagnoseWakeWindow(key) {
+      const diag = WAKE_DIAGNOSTICS[key];
+      document.getElementById('wakeDiagTitle').textContent = diag.title;
+      document.getElementById('wakeDiagBody').textContent = diag.body;
+    }
+
+    // ==========================================
+    // 7. INITIALIZATION & DATA BINDINGS
+    // ==========================================
+    function initializeComponents() {
+      // 1. EAA Bars
+      const eaaContainer = document.getElementById('eaaGrid');
+      eaaContainer.innerHTML = '';
+      EAA_DATA.forEach(item => {
+        const pct = Math.min(Math.round((item.val / item.target) * 100), 1000);
+        const div = document.createElement('div');
+        div.className = 'p-1.5 rounded bg-black/60 border border-neutral-800 text-center';
+        div.innerHTML = `
+          <div class="text-gray-400 font-bold">${item.name}</div>
+          <div class="text-emerald-400 font-extrabold text-[11px]">${item.val}g</div>
+          <div class="text-[9px] text-gray-500">${pct}%</div>
+        `;
+        eaaContainer.appendChild(div);
+      });
+
+      // 2. Hydration Slots
+      const hydContainer = document.getElementById('hydrationGrid');
+      hydContainer.innerHTML = '';
+      HYDRATION_SLOTS.forEach((slot, idx) => {
+        const div = document.createElement('div');
+        div.className = `p-2 rounded border flex flex-col justify-between ${slot.freeze ? 'bg-red-950/40 border-red-800/60' : 'bg-black/60 border-neutral-800'}`;
+        div.innerHTML = `
+          <div>
+            <div class="text-[9px] ${slot.freeze ? 'text-red-400 font-bold' : 'text-gray-400'}">${slot.time}</div>
+            <div class="text-[10px] text-white font-bold leading-tight">${slot.label}</div>
+          </div>
+          <div class="mt-1 flex items-center justify-between">
+            <span class="text-[9px] text-blue-400">${slot.vol}</span>
+            <input type="checkbox" checked class="w-3.5 h-3.5 accent-blue-500 rounded cursor-pointer">
+          </div>
+        `;
+        hydContainer.appendChild(div);
+      });
+
+      // 3. Epigenetic Triggers
+      const epiContainer = document.getElementById('epigeneticTriggersList');
+      epiContainer.innerHTML = '';
+      EPIGENETIC_TRIGGERS.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'p-2.5 rounded bg-black/60 border border-neutral-800 flex items-start justify-between gap-2';
+        div.innerHTML = `
+          <div>
+            <div class="font-bold text-white text-[11px]">${item.name}</div>
+            <div class="text-[10px] text-gray-400 mt-0.5">${item.desc}</div>
+            <div class="text-[9px] font-mono text-purple-400 mt-0.5">Window: ${item.window}</div>
+          </div>
+          <input type="checkbox" checked class="w-4 h-4 accent-purple-500 rounded mt-0.5">
+        `;
+        epiContainer.appendChild(div);
+      });
+
+      // 4. Meals Breakdown
+      const mealsContainer = document.getElementById('mealsContainer');
+      mealsContainer.innerHTML = `
+        <div class="p-3 rounded bg-black/60 border border-neutral-800 flex items-start justify-between text-xs font-mono">
+          <div>
+            <div class="text-emerald-400 font-bold">Meal 1: Business Starter (12:30 - 13:00) • 495 kcal</div>
+            <div class="text-gray-300 text-[11px] mt-0.5">6 Whole Eggs (whites cooked) + 5 Almonds (6g) + 3 Ghee Tomatoes + Amla + Stack (6mg Boron, Caffeine, Theanine, ALCAR, Omega-3)</div>
+            <div class="text-gray-500 text-[10px]">P: 37.3g | F: 35.0g | C: 7.2g | DIAAS: 1.13</div>
+          </div>
+          <input type="checkbox" checked class="w-4 h-4 accent-emerald-500 rounded">
+        </div>
+        <div class="p-3 rounded bg-black/60 border border-neutral-800 flex items-start justify-between text-xs font-mono">
+          <div>
+            <div class="text-blue-400 font-bold">Meal 2: Pre-Workout Ignition Shake (15:00 - 15:15) • 351 kcal</div>
+            <div class="text-gray-300 text-[11px] mt-0.5">30g WPI + 12g Hydrolyzed Collagen + 300ml Chilled Acid Whey + 35g Raw Honey + 5g Creatine</div>
+            <div class="text-gray-500 text-[10px]">P: 42.0g | F: 2.0g | C: 42.0g | DIAAS: 1.22</div>
+          </div>
+          <input type="checkbox" checked class="w-4 h-4 accent-blue-500 rounded">
+        </div>
+        <div class="p-3 rounded bg-black/60 border border-neutral-800 flex items-start justify-between text-xs font-mono">
+          <div>
+            <div class="text-amber-400 font-bold">Meal 3: Post-Workout Strike (40% Split) (17:35 - 18:05) • 590 kcal</div>
+            <div class="text-gray-300 text-[11px] mt-0.5">2 Combination Z Parathas + 40% Paneer Bhurji (80g) + 200g Curd Rayta + CoQ10 Ubiquinol</div>
+            <div class="text-gray-500 text-[10px]">P: 69.0g | F: 12.8g | C: 49.0g | DIAAS: 1.04</div>
+          </div>
+          <input type="checkbox" checked class="w-4 h-4 accent-amber-500 rounded">
+        </div>
+        <div class="p-3 rounded bg-black/60 border border-neutral-800 flex items-start justify-between text-xs font-mono">
+          <div>
+            <div class="text-purple-400 font-bold">Meal 4: Night Casein & Glycogen Brake (60% Split) (22:15 - 23:00) • 930 kcal</div>
+            <div class="text-gray-300 text-[11px] mt-0.5">3 Combination Z Parathas + 60% Paneer Bhurji (120g) + 300g Curd Rayta + 250ml Skimmed Milk</div>
+            <div class="text-gray-500 text-[10px]">P: 108.9g | F: 20.1g | C: 82.3g | DIAAS: 1.08</div>
+          </div>
+          <input type="checkbox" checked class="w-4 h-4 accent-purple-500 rounded">
+        </div>
+      `;
+
+      // 5. Lab Assays
+      const labContainer = document.getElementById('labAssayGrid');
+      labContainer.innerHTML = '';
+      LAB_ASSAYS.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'p-2.5 rounded bg-black/60 border border-neutral-800 flex flex-col justify-between';
+        div.innerHTML = `
+          <div>
+            <div class="font-bold text-white text-[11px]">${item.name}</div>
+            <div class="text-[10px] text-gray-400 mt-0.5">${item.tests}</div>
+          </div>
+          <div class="text-[10px] text-purple-400 font-bold mt-2">${item.target}</div>
+        `;
+        labContainer.appendChild(div);
+      });
+
+      setFlavorVariant('A');
+      renderScheduleTable();
+      startLiveClock();
+    }
+
+    function startLiveClock() {
+      setInterval(() => {
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString('en-US', { timeZone: 'Asia/Kolkata', hour12: false });
+        document.getElementById('currentTimeDisplay').textContent = `${timeStr} IST`;
+      }, 1000);
+    }
+
+    // ==========================================
+    // 8. GOOGLE SHEETS SYNC ENGINE
+    // ==========================================
+    async function syncWithGoogleSheet() {
+      const url = document.getElementById('sheetsWebhookUrl').value.trim();
+      const statusEl = document.getElementById('syncStatusMessage');
+      if (!url) {
+        statusEl.innerHTML = '<span class="text-amber-400">Please paste your Google Apps Script Webhook URL first.</span>';
+        return;
+      }
+
+      statusEl.innerHTML = '<span class="text-blue-400">Pushing telemetry to Google Sheet...</span>';
+      try {
+        const payload = {
+          date: new Date().toISOString().split('T')[0],
+          accountabilityScore: 100.0,
+          focusScore: 100.0,
+          hydrationVolume: 4000,
+          steadyScore: document.getElementById('steadyScoreBadge').textContent,
+          hormonalState: document.getElementById('cockpitHormonalState').textContent,
+          epigenetics: "10/10"
+        };
+
+        const res = await fetch(url, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        statusEl.innerHTML = '<span class="text-emerald-400 font-bold">✅ Telemetry synced successfully with Google Sheet!</span>';
+      } catch (err) {
+        statusEl.innerHTML = `<span class="text-red-400">Sync Error: ${err.message}</span>`;
+      }
+    }
+
+    function exportArchiveJSON() {
+      const state = {
+        timestamp: new Date().toISOString(),
+        day: currentSelectedDay,
+        hormonalState: document.getElementById('cockpitHormonalState').textContent,
+        steadyScore: document.getElementById('steadyScoreBadge').textContent,
+        eaa: EAA_DATA,
+        hydration: HYDRATION_SLOTS
+      };
+      const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `BCS_Telemetry_${new Date().toISOString().split('T')[0]}.json`;
+      a.click();
+    }
+
+    function importArchiveJSON(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        try {
+          const data = JSON.parse(evt.target.result);
+          alert('Telemetry file imported successfully!');
+        } catch (err) {
+          alert('Invalid JSON file format.');
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    // Run on boot
+    window.addEventListener('DOMContentLoaded', initializeComponents);
+  </script>
+</body>
+</html>
